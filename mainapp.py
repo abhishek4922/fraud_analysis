@@ -403,6 +403,8 @@ def update_kpi_metrics(data, n_clicks, states, channels):
     prevent_initial_call=True
 )
 def update_all_visualizations(data, n_clicks, states, channels):
+    print("Callback triggered. n_clicks:", n_clicks)
+    
     if not data:
         # Return empty figures if no data
         empty_fig = px.scatter(title="No data available")
@@ -413,6 +415,10 @@ def update_all_visualizations(data, n_clicks, states, channels):
     
     # Ensure 'Date of Death' is datetime
     df['Date of Death'] = pd.to_datetime(df['Date of Death'], errors='coerce')
+    
+    # Debugging: Print the filter values
+    print("Selected States:", states)
+    print("Selected Channels:", channels)
     
     # Apply filters if they are set
     filtered_df = df.copy()
@@ -430,141 +436,75 @@ def update_all_visualizations(data, n_clicks, states, channels):
         empty_fig = px.scatter(title="No data available")
         return [empty_fig] * 7 + [[], []]
     
-    # Ensure 'Date of Death' is datetime before using .dt
-    filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
+    # Generate figures using the filtered DataFrame
 
-    # Group by Death_Month and calculate metrics
-    time_series_df = filtered_df.groupby(['Death_Month']).agg(
-        Total_Claims=('Dummy Policy No', 'count'),
-        Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
-    ).reset_index()
-
-    # Convert Death_Month to string for JSON serialization
-    time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
-
-    # Calculate Fraud Rate
-    time_series_df['Fraud_Rate'] = (time_series_df['Fraud_Claims'] / time_series_df['Total_Claims']) * 100
-    
-    # Debugging: Print the time-series DataFrame
-    print("Time-Series DataFrame:")
-    print(time_series_df)
-    
-    # Generate figures (existing code for plots)
-    # ...
-    
-    # Plot 1: Enhanced Treemap
-    treemap_df = filtered_df.groupby(['CORRESPONDENCESTATE', 'CORRESPONDENCECITY']).size().reset_index(name='Count')
+    # Figure 1: Treemap for State-City Fraud Distribution
     fig1 = px.treemap(
-        treemap_df,
+        filtered_df.groupby(['CORRESPONDENCESTATE', 'CORRESPONDENCECITY']).size().reset_index(name='Count'),
         path=['CORRESPONDENCESTATE', 'CORRESPONDENCECITY'],
         values='Count',
         color='Count',
         color_continuous_scale='Viridis',
         hover_data={'Count': True}
     )
-    fig1.update_layout(
-        margin=dict(l=20, r=20, t=30, b=20),
-        coloraxis_showscale=True
-    )
-    
-    # Plot 2: Enhanced Channel Bar
-    channel_df = filtered_df.groupby('CHANNEL').size().reset_index(name='Count')
-    channel_df = channel_df.sort_values(by='Count', ascending=False)
+
+    # Figure 2: Bar chart for Fraud Count by Channel
     fig2 = px.bar(
-        channel_df,
+        filtered_df.groupby('CHANNEL').size().reset_index(name='Count'),
         x='CHANNEL',
         y='Count',
-        color='Count',
-        color_continuous_scale='Viridis',
-        text='Count'
+        color='CHANNEL',
+        title="Fraud Count by Channel"
     )
-    fig2.update_traces(texttemplate='%{text:,}', textposition='outside')
-    fig2.update_layout(
-        xaxis_title="Distribution Channel",
-        yaxis_title="Number of Cases",
-        xaxis={'categoryorder': 'total descending'},
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    
-    # Plot 3: Enhanced Policy to Death Histogram
+
+    # Figure 3: Histogram for Days Between Policy Start and Death
     fig3 = px.histogram(
         filtered_df,
         x='Policy_to_Death_Days',
-        nbins=30,
-        color_discrete_sequence=[colors['info']],
-        marginal='box'
+        nbins=20,
+        title="Days Between Policy Start and Death",
+        labels={'Policy_to_Death_Days': 'Days'}
     )
-    fig3.update_layout(
-        xaxis_title="Days Between Policy Start and Death",
-        yaxis_title="Frequency",
-        bargap=0.05,
-        plot_bgcolor='rgba(0,0,0,0)',
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)')
-    )
-    
-    # Plot 4: Enhanced State-Channel Distribution
-    state_channel_df = filtered_df.groupby(['CORRESPONDENCESTATE', 'CHANNEL']).size().reset_index(name='Count')
-    top_states = state_channel_df.groupby('CORRESPONDENCESTATE')['Count'].sum().nlargest(10).index.tolist()
-    state_channel_df = state_channel_df[state_channel_df['CORRESPONDENCESTATE'].isin(top_states)]
+
+    # Figure 4: Bar chart for State-wise Distribution of Channels
     fig4 = px.bar(
-        state_channel_df,
+        filtered_df.groupby(['CORRESPONDENCESTATE', 'CHANNEL']).size().reset_index(name='Count'),
         x='CORRESPONDENCESTATE',
         y='Count',
         color='CHANNEL',
-        barmode='group',
-        text='Count'
+        title="State-wise Distribution of Channels"
     )
-    fig4.update_traces(texttemplate='%{text:,}', textposition='outside')
-    fig4.update_layout(
-        xaxis_title="State",
-        yaxis_title="Number of Cases",
-        legend_title="Channel",
-        xaxis={'categoryorder': 'total descending', 'tickangle': -45},
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    
-    # Plot 5: Enhanced Top Postcodes with Fraud
-    fraud_df = filtered_df[filtered_df['Fraud Category'].notna()]
-    fraud_counts = fraud_df.groupby(['CORRESPONDENCEPOSTCODE', 'CORRESPONDENCECITY']).size().reset_index(name='Fraud Count')
-    top_frauds = fraud_counts.sort_values(by='Fraud Count', ascending=False).head(10)
-    top_frauds['Postcode + City'] = top_frauds['CORRESPONDENCEPOSTCODE'].astype(str) + ' - ' + top_frauds['CORRESPONDENCECITY']
+
+    # Combine Postcode and City for better labels
+    filtered_df['Postcode_City'] = filtered_df['CORRESPONDENCEPOSTCODE'].astype(str) + " (" + filtered_df['CORRESPONDENCECITY'] + ")"
+
+    # Figure 5: Bar chart for Top 10 Postcodes with Highest Number of Frauds
     fig5 = px.bar(
-        top_frauds,
-        x='Postcode + City',
-        y='Fraud Count',
-        text='Fraud Count',
-        color='CORRESPONDENCECITY',
-        color_discrete_sequence=px.colors.qualitative.Set3
+        filtered_df.groupby('Postcode_City').size().reset_index(name='Count').nlargest(10, 'Count'),
+        x='Postcode_City',
+        y='Count',
+        title="Top 10 Postcodes with Highest Number of Frauds",
+        labels={'Postcode_City': 'Postcode (City)', 'Count': 'Number of Cases'}
     )
-    fig5.update_traces(texttemplate='%{text:,}', textposition='outside')
-    fig5.update_layout(
-        xaxis_title="Postcode - City",
-        yaxis_title="Number of Fraud Cases",
-        xaxis_tickangle=-45,
-        showlegend=False,
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        plot_bgcolor='rgba(0,0,0,0)'
-    )
-    
-    # Plot 6: Intimation Delay Histogram
+
+    # Figure 6: Histogram for Intimation Delay Analysis
     fig6 = px.histogram(
         filtered_df,
         x='Death_to_Intimation_Days',
-        nbins=30,
-        color_discrete_sequence=[colors['warning']],
-        marginal='box'
+        nbins=20,
+        title="Intimation Delay Analysis",
+        labels={'Death_to_Intimation_Days': 'Days'}
     )
-    fig6.update_layout(
-        xaxis_title="Days Between Death and Claim Intimation",
-        yaxis_title="Frequency",
-        bargap=0.05,
-        plot_bgcolor='rgba(0,0,0,0)',
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)')
-    )
-    
-    # Plot 7: Fraud Trend Over Time
+
+    # Figure 7: Fraud Trend Over Time
+    filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
+    time_series_df = filtered_df.groupby(['Death_Month']).agg(
+        Total_Claims=('Dummy Policy No', 'count'),
+        Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
+    ).reset_index()
+    time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
+    time_series_df['Fraud_Rate'] = (time_series_df['Fraud_Claims'] / time_series_df['Total_Claims']) * 100
+
     fig7 = make_subplots(specs=[[{"secondary_y": True}]])
     fig7.add_trace(
         go.Bar(
@@ -607,10 +547,10 @@ def update_all_visualizations(data, n_clicks, states, channels):
         secondary_y=True,
         gridcolor='rgba(0,0,0,0.1)'
     )
-    
+
     # Data table
     columns = [
-        {"name": "Policy Number", "id": "Dummy Policy No"},  # Updated column name
+        {"name": "Policy Number", "id": "Dummy Policy No"},
         {"name": "State", "id": "CORRESPONDENCESTATE"},
         {"name": "City", "id": "CORRESPONDENCECITY"},
         {"name": "Postcode", "id": "CORRESPONDENCEPOSTCODE"},
@@ -625,15 +565,9 @@ def update_all_visualizations(data, n_clicks, states, channels):
     # Create a copy of filtered_df for the data table
     table_df = filtered_df.copy()
 
-    # Debugging: Print the first few rows of the date columns
-    print("Date Columns Before Formatting:")
-    print(table_df[['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']].head())
-
     # Format dates for table display
     for date_col in ['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']:
-        # Ensure the column is in datetime format
         table_df[date_col] = pd.to_datetime(table_df[date_col], errors='coerce')
-        # Format the datetime column to string
         table_df[date_col] = table_df[date_col].dt.strftime('%Y-%m-%d')
 
     # Select only necessary columns for table display
