@@ -308,9 +308,12 @@ def parse_contents(contents):
         df = pd.read_excel(io.BytesIO(decoded))
         
         # Preprocess date columns
-        df['POLICYRISKCOMMENCEMENTDATE'] = pd.to_datetime(df['POLICYRISKCOMMENCEMENTDATE'], errors='coerce')
-        df['Date of Death'] = pd.to_datetime(df['Date of Death'], errors='coerce')
-        df['INTIMATIONDATE'] = pd.to_datetime(df['INTIMATIONDATE'], errors='coerce')
+        for col in ['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']:
+            df[col] = pd.to_datetime(df[col], errors='coerce')  # Convert to datetime, invalid values become NaT
+        
+        # Check for missing or invalid dates
+        if df['Date of Death'].isna().any():
+            print("Warning: Some 'Date of Death' values could not be converted to datetime.")
         
         # Calculate time differences
         df['Policy_to_Death_Days'] = (df['Date of Death'] - df['POLICYRISKCOMMENCEMENTDATE']).dt.days
@@ -408,12 +411,37 @@ def update_all_visualizations(data, n_clicks, states, channels):
     # Convert back to DataFrame
     df = pd.DataFrame(data)
     
+    # Ensure 'Date of Death' is datetime
+    df['Date of Death'] = pd.to_datetime(df['Date of Death'], errors='coerce')
+    
+    # Debugging: Print the original DataFrame
+    print("Original DataFrame:")
+    print(df.head())
+    
     # Apply filters if they are set
     filtered_df = df.copy()
     if states and len(states) > 0:
         filtered_df = filtered_df[filtered_df['CORRESPONDENCESTATE'].isin(states)]
     if channels and len(channels) > 0:
         filtered_df = filtered_df[filtered_df['CHANNEL'].isin(channels)]
+    
+    # Filter out rows with invalid 'Date of Death'
+    filtered_df = filtered_df[filtered_df['Date of Death'].notna()]
+    
+    # Debugging: Print the filtered DataFrame
+    print("Filtered DataFrame:")
+    print(filtered_df.head())
+    
+    # Debugging: Print the columns of the filtered DataFrame
+    print("Filtered DataFrame Columns:", filtered_df.columns)
+    
+    # Check if filtered DataFrame is empty
+    if filtered_df.empty:
+        empty_fig = px.scatter(title="No data available")
+        return [empty_fig] * 7 + [[], []]
+    
+    # Ensure 'Date of Death' is datetime before using .dt
+    filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
     
     # Plot 1: Enhanced Treemap
     treemap_df = filtered_df.groupby(['CORRESPONDENCESTATE', 'CORRESPONDENCECITY']).size().reset_index(name='Count')
@@ -530,7 +558,7 @@ def update_all_visualizations(data, n_clicks, states, channels):
     # Plot 7: Fraud Trend Over Time
     filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
     time_series_df = filtered_df.groupby(['Death_Month']).agg(
-        Total_Claims=('POLICYNUMBER', 'count'),
+        Total_Claims=('Dummy Policy No', 'count'),  # Updated column name
         Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
     ).reset_index()
     time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
@@ -580,7 +608,7 @@ def update_all_visualizations(data, n_clicks, states, channels):
     
     # Data table
     columns = [
-        {"name": "Policy Number", "id": "POLICYNUMBER"},
+        {"name": "Policy Number", "id": "Dummy Policy No"},  # Updated column name
         {"name": "State", "id": "CORRESPONDENCESTATE"},
         {"name": "City", "id": "CORRESPONDENCECITY"},
         {"name": "Postcode", "id": "CORRESPONDENCEPOSTCODE"},
@@ -592,11 +620,20 @@ def update_all_visualizations(data, n_clicks, states, channels):
         {"name": "Fraud Category", "id": "Fraud Category"}
     ]
     
-    # Format dates for table display
+    # Create a copy of filtered_df for the data table
     table_df = filtered_df.copy()
+
+    # Debugging: Print the first few rows of the date columns
+    print("Date Columns Before Formatting:")
+    print(table_df[['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']].head())
+
+    # Format dates for table display
     for date_col in ['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']:
+        # Ensure the column is in datetime format
+        table_df[date_col] = pd.to_datetime(table_df[date_col], errors='coerce')
+        # Format the datetime column to string
         table_df[date_col] = table_df[date_col].dt.strftime('%Y-%m-%d')
-    
+
     # Select only necessary columns for table display
     table_data = table_df[[col['id'] for col in columns]].to_dict('records')
     return fig1, fig2, fig3, fig4, fig5, fig6, fig7, table_data, columns
