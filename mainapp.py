@@ -414,10 +414,6 @@ def update_all_visualizations(data, n_clicks, states, channels):
     # Ensure 'Date of Death' is datetime
     df['Date of Death'] = pd.to_datetime(df['Date of Death'], errors='coerce')
     
-    # Debugging: Print the original DataFrame
-    print("Original DataFrame:")
-    print(df.head())
-    
     # Apply filters if they are set
     filtered_df = df.copy()
     if states and len(states) > 0:
@@ -425,15 +421,9 @@ def update_all_visualizations(data, n_clicks, states, channels):
     if channels and len(channels) > 0:
         filtered_df = filtered_df[filtered_df['CHANNEL'].isin(channels)]
     
-    # Filter out rows with invalid 'Date of Death'
-    filtered_df = filtered_df[filtered_df['Date of Death'].notna()]
-    
     # Debugging: Print the filtered DataFrame
-    print("Filtered DataFrame:")
+    print("Filtered DataFrame After Applying Filters:")
     print(filtered_df.head())
-    
-    # Debugging: Print the columns of the filtered DataFrame
-    print("Filtered DataFrame Columns:", filtered_df.columns)
     
     # Check if filtered DataFrame is empty
     if filtered_df.empty:
@@ -442,6 +432,25 @@ def update_all_visualizations(data, n_clicks, states, channels):
     
     # Ensure 'Date of Death' is datetime before using .dt
     filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
+
+    # Group by Death_Month and calculate metrics
+    time_series_df = filtered_df.groupby(['Death_Month']).agg(
+        Total_Claims=('Dummy Policy No', 'count'),
+        Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
+    ).reset_index()
+
+    # Convert Death_Month to string for JSON serialization
+    time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
+
+    # Calculate Fraud Rate
+    time_series_df['Fraud_Rate'] = (time_series_df['Fraud_Claims'] / time_series_df['Total_Claims']) * 100
+    
+    # Debugging: Print the time-series DataFrame
+    print("Time-Series DataFrame:")
+    print(time_series_df)
+    
+    # Generate figures (existing code for plots)
+    # ...
     
     # Plot 1: Enhanced Treemap
     treemap_df = filtered_df.groupby(['CORRESPONDENCESTATE', 'CORRESPONDENCECITY']).size().reset_index(name='Count')
@@ -556,13 +565,6 @@ def update_all_visualizations(data, n_clicks, states, channels):
     )
     
     # Plot 7: Fraud Trend Over Time
-    filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
-    time_series_df = filtered_df.groupby(['Death_Month']).agg(
-        Total_Claims=('Dummy Policy No', 'count'),  # Updated column name
-        Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
-    ).reset_index()
-    time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
-    time_series_df['Fraud_Rate'] = (time_series_df['Fraud_Claims'] / time_series_df['Total_Claims']) * 100
     fig7 = make_subplots(specs=[[{"secondary_y": True}]])
     fig7.add_trace(
         go.Bar(
