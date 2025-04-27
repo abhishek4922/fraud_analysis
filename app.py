@@ -306,35 +306,25 @@ app.layout = html.Div([
             # Tabs for different visualization groups
             dbc.Tabs([
                 dbc.Tab(label="Overview", tab_id="tab-overview", children=[
-                    dbc.Row([
-                        dbc.Col([
-                            create_chart_card(
-                                "Fraud Cases by Month", 
-                                "time-series-chart",
-                                icon="fas fa-chart-line",
-                                help_text="Shows the trend of total claims and fraud rate over time"
-                            )
-                        ], width=12, className="mb-4")
-                    ]),
-                    dbc.Row([
-                        dbc.Col([
-                            create_chart_card(
-                                "Fraud Count by Channel", 
-                                "channel-bar",
-                                icon="fas fa-sitemap",
-                                help_text="Distribution of fraud cases across different channels"
-                            )
-                        ], md=6, className="mb-4"),
-                        dbc.Col([
-                            create_chart_card(
-                                "Top 10 Postcodes", 
-                                "top-postcodes-bar",
-                                icon="fas fa-map-marker-alt",
-                                help_text="Top 10 postcodes with highest number of frauds"
-                            )
-                        ], md=6, className="mb-4")
-                    ])
-                ], className="mt-3"),
+    dbc.Row([
+        dbc.Col([
+            create_chart_card(
+                "Fraud Count by Channel", 
+                "channel-bar",
+                icon="fas fa-sitemap",
+                help_text="Distribution of fraud cases across different channels"
+            )
+        ], md=6, className="mb-4"),
+        dbc.Col([
+            create_chart_card(
+                "Top 10 Postcodes", 
+                "top-postcodes-bar",
+                icon="fas fa-map-marker-alt",
+                help_text="Top 10 postcodes with highest number of frauds"
+            )
+        ], md=6, className="mb-4")
+    ])
+], className="mt-3"),
                 
                 dbc.Tab(label="Geographic Analysis", tab_id="tab-geo", children=[
                     dbc.Row([
@@ -761,6 +751,360 @@ def apply_chart_theme(fig):
     return fig
 
 # Callback to update all charts
+# @app.callback(
+#     [Output('treemap', 'figure'),
+#      Output('channel-bar', 'figure'),
+#      Output('policy-death-hist', 'figure'),
+#      Output('state-channel-bar', 'figure'),
+#      Output('top-postcodes-bar', 'figure'),
+#      Output('intimation-delay-hist', 'figure'),
+#      Output('data-table', 'data'),
+#      Output('data-table', 'columns')],
+#     Input('filtered-data', 'data'),
+#     prevent_initial_call=True
+# )
+# def update_all_visualizations(filtered_data):
+#     if not filtered_data:
+#         # Return empty figures if no data
+#         empty_fig = px.scatter(title="No data available")
+#         empty_fig = apply_chart_theme(empty_fig)
+#         empty_fig.update_layout(
+#             annotations=[{
+#                 'text': 'No data available',
+#                 'xref': 'paper',
+#                 'yref': 'paper',
+#                 'x': 0.5,
+#                 'y': 0.5,
+#                 'showarrow': False,
+#                 'font': {'size': 20}
+#             }]
+#         )
+#         return [empty_fig] * 7 + [[], []]
+    
+#     # Convert to DataFrame
+#     df = pd.DataFrame(filtered_data)
+    
+#     # Ensure date columns are datetime
+#     for col in ['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']:
+#         df[col] = pd.to_datetime(df[col], errors='coerce')
+    
+#     # Check if filtered DataFrame is empty
+#     if df.empty:
+#         empty_fig = px.scatter(title="No data matches the selected filters")
+#         empty_fig = apply_chart_theme(empty_fig)
+#         empty_fig.update_layout(
+#             annotations=[{
+#                 'text': 'No data matches the selected filters',
+#                 'xref': 'paper',
+#                 'yref': 'paper',
+#                 'x': 0.5,
+#                 'y': 0.5,
+#                 'showarrow': False,
+#                 'font': {'size': 20}
+#             }]
+#         )
+#         return [empty_fig] * 7 + [[], []]
+    
+#     # Generate enhanced figures using the filtered DataFrame
+
+#     # Figure 1: Treemap for State-City Fraud Distribution
+#     treemap_data = df.groupby(['CORRESPONDENCESTATE', 'CORRESPONDENCECITY']).size().reset_index(name='Count')
+#     treemap_data = treemap_data.sort_values('Count', ascending=False)
+    
+#     fig1 = px.treemap(
+#         treemap_data,
+#         path=['CORRESPONDENCESTATE', 'CORRESPONDENCECITY'],
+#         values='Count',
+#         color='Count',
+#         color_continuous_scale=['#18BC9C', '#2C3E50'],
+#         hover_data={'Count': True},
+#         title="Fraud Distribution by State and City"
+#     )
+#     fig1.update_traces(
+#         hovertemplate='<b>%{label}</b><br>Count: %{value}<extra></extra>',
+#         textinfo='label+value'
+#     )
+#     fig1 = apply_chart_theme(fig1)
+
+#     # Figure 2: Bar chart for Fraud Count by Channel with improved styling
+#     channel_data = df.groupby('CHANNEL').size().reset_index(name='Count')
+#     channel_data = channel_data.sort_values('Count', ascending=False)
+    
+#     fig2 = px.bar(
+#         channel_data,
+#         x='CHANNEL',
+#         y='Count',
+#         color='Count',
+#         color_continuous_scale=['#AED6F1', '#3498DB'],
+#         text='Count',
+#         title="Fraud Count by Distribution Channel"
+#     )
+#     fig2.update_traces(
+#         texttemplate='%{text}',
+#         textposition='outside',
+#         hovertemplate='<b>%{x}</b><br>Count: %{y}<extra></extra>',
+#         marker=dict(line=dict(width=1, color='#FFFFFF'))
+#     )
+#     fig2.update_layout(xaxis_title="Channel", yaxis_title="Number of Fraud Cases")
+#     fig2 = apply_chart_theme(fig2)
+
+#     # Figure 3: Histogram for Days Between Policy Start and Death with better styling
+#     fig3 = px.histogram(
+#         df,
+#         x='Policy_to_Death_Days',
+#         nbins=30,
+#         opacity=0.8,
+#         color_discrete_sequence=[colors['info']],
+#         marginal='box',
+#         title="Days Between Policy Start and Death"
+#     )
+#     fig3.update_traces(
+#         marker=dict(line=dict(width=1, color='white')),
+#         hovertemplate='Days: %{x}<br>Count: %{y}<extra></extra>'
+#     )
+#     fig3.update_layout(
+#         xaxis_title="Number of Days",
+#         yaxis_title="Number of Cases",
+#         bargap=0.1
+#     )
+#     fig3 = apply_chart_theme(fig3)
+    
+#     # Add a vertical line at median value
+#     median_days = df['Policy_to_Death_Days'].median()
+#     fig3.add_shape(
+#         type="line",
+#         x0=median_days,
+#         y0=0,
+#         x1=median_days,
+#         y1=1,
+#         yref="paper",
+#         line=dict(color=colors['danger'], width=2, dash="dash"),
+#     )
+#     fig3.add_annotation(
+#         x=median_days,
+#         y=0.95,
+#         yref="paper",
+#         text=f"Median: {median_days:.0f} days",
+#         showarrow=True,
+#         arrowhead=2,
+#         arrowcolor=colors['danger'],
+#         arrowsize=1,
+#         arrowwidth=2,
+#         bgcolor=colors['light'],
+#         bordercolor=colors['danger'],
+#         borderwidth=1,
+#         borderpad=4,
+#         font=dict(color=colors['danger'])
+#     )
+
+#     # Figure 4: Enhanced bar chart for State-wise Distribution of Channels
+#     state_channel_data = df.groupby(['CORRESPONDENCESTATE', 'CHANNEL']).size().reset_index(name='Count')
+#     # Get top 10 states by count
+#     top_states = df['CORRESPONDENCESTATE'].value_counts().nlargest(10).index.tolist()
+#     state_channel_data = state_channel_data[state_channel_data['CORRESPONDENCESTATE'].isin(top_states)]
+    
+#     fig4 = px.bar(
+#         state_channel_data,
+#         x='CORRESPONDENCESTATE',
+#         y='Count',
+#         color='CHANNEL',
+#         title="Channel Distribution by State (Top 10 States)",
+#         barmode='stack',
+#         text='Count'
+#     )
+#     fig4.update_traces(
+#         textposition='inside',
+#         texttemplate='%{text}',
+#         hovertemplate='<b>%{x}</b><br>Channel: %{fullData.name}<br>Count: %{y}<extra></extra>',
+#         marker=dict(line=dict(width=0.5, color='white'))
+#     )
+#     fig4.update_layout(
+#         xaxis_title="State",
+#         yaxis_title="Number of Cases",
+#         legend_title="Channel"
+#     )
+#     fig4 = apply_chart_theme(fig4)
+
+#     # Combine Postcode and City for better labels
+#     df['Postcode_City'] = df['CORRESPONDENCEPOSTCODE'].astype(str) + " (" + df['CORRESPONDENCECITY'] + ")"
+
+#     # Figure 5: Enhanced bar chart for Top 10 Postcodes
+#     postcode_data = df.groupby('Postcode_City').size().reset_index(name='Count').nlargest(10, 'Count')
+#     postcode_data = postcode_data.sort_values('Count', ascending=True)  # For horizontal bars
+    
+#     fig5 = px.bar(
+#         postcode_data,
+#         y='Postcode_City',
+#         x='Count',
+#         title="Top 10 Postcodes with Highest Number of Frauds",
+#         orientation='h',
+#         color='Count',
+#         color_continuous_scale=['#FAD7A0', '#F39C12'],
+#         text='Count'
+#     )
+#     fig5.update_traces(
+#         texttemplate='%{text}',
+#         textposition='outside',
+#         hovertemplate='<b>%{y}</b><br>Count: %{x}<extra></extra>',
+#         marker=dict(line=dict(width=1, color='white'))
+#     )
+#     fig5.update_layout(
+#         yaxis_title="Postcode (City)",
+#         xaxis_title="Number of Cases"
+#     )
+#     fig5 = apply_chart_theme(fig5)
+
+#     # Figure 6: Enhanced histogram for Intimation Delay
+#     fig6 = px.histogram(
+#         df,
+#         x='Death_to_Intimation_Days',
+#         nbins=30,
+#         opacity=0.8,
+#         color_discrete_sequence=[colors['secondary']],
+#         marginal='box',
+#         title="Delay Between Death and Claim Intimation"
+#     )
+#     fig6.update_traces(
+#         marker=dict(line=dict(width=1, color='white')),
+#         hovertemplate='Days: %{x}<br>Count: %{y}<extra></extra>'
+#     )
+#     fig6.update_layout(
+#         xaxis_title="Number of Days",
+#         yaxis_title="Number of Cases",
+#         bargap=0.1
+#     )
+#     fig6 = apply_chart_theme(fig6)
+    
+#     # Add a vertical line at median value
+#     median_intimation = df['Death_to_Intimation_Days'].median()
+#     fig6.add_shape(
+#         type="line",
+#         x0=median_intimation,
+#         y0=0,
+#         x1=median_intimation,
+#         y1=1,
+#         yref="paper",
+#         line=dict(color=colors['secondary'], width=2, dash="dash"),
+#     )
+#     fig6.add_annotation(
+#         x=median_intimation,
+#         y=0.95,
+#         yref="paper",
+#         text=f"Median: {median_intimation:.0f} days",
+#         showarrow=True,
+#         arrowhead=2,
+#         arrowcolor=colors['secondary'],
+#         arrowsize=1,
+#         arrowwidth=2,
+#         bgcolor=colors['light'],
+#         bordercolor=colors['secondary'],
+#         borderwidth=1,
+#         borderpad=4,
+#         font=dict(color=colors['secondary'])
+#     )
+
+#     # Figure 7: Bar chart for Fraud Cases by Month
+#     # df['Death_Month'] = df['Date of Death'].dt.to_period('M').astype(str)
+#     # fraud_by_month = df.groupby('Death_Month').size().reset_index(name='Fraud Cases')
+#     # fraud_by_month['Death_Month_dt'] = pd.to_datetime(fraud_by_month['Death_Month'])
+#     # fraud_by_month = fraud_by_month.sort_values('Death_Month_dt')  # Sort by date for proper ordering
+
+#     # fig7 = px.bar(
+#     #     fraud_by_month,
+#     #     x='Death_Month',
+#     #     y='Fraud Cases',
+#     #     title="Fraud Cases by Month",
+#     #     color='Fraud Cases',
+#     #     color_continuous_scale=['#FAD7A0', '#F39C12'],
+#     #     text='Fraud Cases'
+#     # )
+#     # fig7.update_traces(
+#     #     texttemplate='%{text}',
+#     #     textposition='outside',
+#     #     hovertemplate='<b>%{x}</b><br>Fraud Cases: %{y}<extra></extra>',
+#     #     marker=dict(line=dict(width=1, color='white'))
+#     # )
+#     # fig7.update_layout(
+#     #     xaxis_title="Month",
+#     #     yaxis_title="Number of Fraud Cases"
+#     # )
+#     # fig7 = apply_chart_theme(fig7)
+#     filtered_df = df.copy()
+#     filtered_df['Death_Month'] = filtered_df['Date of Death'].dt.to_period('M')
+#     time_series_df = filtered_df.groupby(['Death_Month']).agg(
+#         Total_Claims=('Dummy Policy No', 'count'),
+#         Fraud_Claims=('Fraud Category', lambda x: x.notna().sum())
+#     ).reset_index()
+#     time_series_df['Death_Month'] = time_series_df['Death_Month'].astype(str)
+#     time_series_df['Fraud_Rate'] = (time_series_df['Fraud_Claims'] / time_series_df['Total_Claims']) * 100
+
+#     fig7 = make_subplots(specs=[[{"secondary_y": True}]])
+#     fig7.add_trace(
+#         go.Bar(
+#             x=time_series_df['Death_Month'],
+#             y=time_series_df['Total_Claims'],
+#             name="Total Claims",
+#             marker_color=colors['primary']
+#         ),
+#         secondary_y=False
+#     )
+#     fig7.add_trace(
+#         go.Scatter(
+#             x=time_series_df['Death_Month'],
+#             y=time_series_df['Fraud_Rate'],
+#             name="Fraud Rate (%)",
+#             mode="lines+markers",
+#             line=dict(color=colors['danger'], width=3),
+#             marker=dict(size=8)
+#         ),
+#         secondary_y=True
+#     )
+#     fig7.update_layout(
+#         xaxis_title="Month",
+#         legend=dict(
+#             orientation="h",
+#             yanchor="bottom",
+#             y=1.02,
+#             xanchor="right",
+#             x=1
+#         ),
+#         plot_bgcolor='rgba(0,0,0,0)'
+#     )
+#     fig7.update_yaxes(
+#         title_text="Number of Claims",
+#         secondary_y=False,
+#         gridcolor='rgba(0,0,0,0.1)'
+#     )
+#     fig7.update_yaxes(
+#         title_text="Fraud Rate (%)",
+#         secondary_y=True,
+#         gridcolor='rgba(0,0,0,0.1)'
+#     )
+#     # Data table with improved formatting
+#     columns = [
+#         {"name": "Policy Number", "id": "Dummy Policy No", "selectable": True},
+#         {"name": "State", "id": "CORRESPONDENCESTATE", "selectable": True},
+#         {"name": "City", "id": "CORRESPONDENCECITY", "selectable": True},
+#         {"name": "Postcode", "id": "CORRESPONDENCEPOSTCODE", "selectable": True},
+#         {"name": "Channel", "id": "CHANNEL", "selectable": True},
+#         {"name": "Policy Start", "id": "POLICYRISKCOMMENCEMENTDATE", "selectable": True},
+#         {"name": "Death Date", "id": "Date of Death", "selectable": True},
+#         {"name": "Intimation Date", "id": "INTIMATIONDATE", "selectable": True},
+#         {"name": "Days to Death", "id": "Policy_to_Death_Days", "selectable": True, "type": "numeric", "format": {"specifier": ",.0f"}},
+#         {"name": "Fraud Category", "id": "Fraud Category", "selectable": True}
+#     ]
+    
+#     # Create a copy of filtered_df for the data table
+#     table_df = df.copy()
+
+#     # Format dates for table display
+#     for date_col in ['POLICYRISKCOMMENCEMENTDATE', 'Date of Death', 'INTIMATIONDATE']:
+#         table_df[date_col] = table_df[date_col].dt.strftime('%Y-%m-%d')
+
+#     # Select only necessary columns for table display
+#     table_data = table_df[[col['id'] for col in columns]].to_dict('records')
+    
+#     return fig1, fig2, fig3, fig4, fig5, fig6, table_data, columns
 @app.callback(
     [Output('treemap', 'figure'),
      Output('channel-bar', 'figure'),
@@ -768,7 +1112,6 @@ def apply_chart_theme(fig):
      Output('state-channel-bar', 'figure'),
      Output('top-postcodes-bar', 'figure'),
      Output('intimation-delay-hist', 'figure'),
-     Output('time-series-chart', 'figure'),
      Output('data-table', 'data'),
      Output('data-table', 'columns')],
     Input('filtered-data', 'data'),
@@ -790,7 +1133,7 @@ def update_all_visualizations(filtered_data):
                 'font': {'size': 20}
             }]
         )
-        return [empty_fig] * 7 + [[], []]
+        return [empty_fig] * 6 + [[], []]
     
     # Convert to DataFrame
     df = pd.DataFrame(filtered_data)
@@ -814,7 +1157,7 @@ def update_all_visualizations(filtered_data):
                 'font': {'size': 20}
             }]
         )
-        return [empty_fig] * 7 + [[], []]
+        return [empty_fig] * 6 + [[], []]
     
     # Generate enhanced figures using the filtered DataFrame
 
@@ -1014,33 +1357,6 @@ def update_all_visualizations(filtered_data):
         font=dict(color=colors['secondary'])
     )
 
-    # Figure 7: Bar chart for Fraud Cases by Month
-    df['Death_Month'] = df['Date of Death'].dt.to_period('M').astype(str)
-    fraud_by_month = df.groupby('Death_Month').size().reset_index(name='Fraud Cases')
-    fraud_by_month['Death_Month_dt'] = pd.to_datetime(fraud_by_month['Death_Month'])
-    fraud_by_month = fraud_by_month.sort_values('Death_Month_dt')  # Sort by date for proper ordering
-
-    fig7 = px.bar(
-        fraud_by_month,
-        x='Death_Month',
-        y='Fraud Cases',
-        title="Fraud Cases by Month",
-        color='Fraud Cases',
-        color_continuous_scale=['#FAD7A0', '#F39C12'],
-        text='Fraud Cases'
-    )
-    fig7.update_traces(
-        texttemplate='%{text}',
-        textposition='outside',
-        hovertemplate='<b>%{x}</b><br>Fraud Cases: %{y}<extra></extra>',
-        marker=dict(line=dict(width=1, color='white'))
-    )
-    fig7.update_layout(
-        xaxis_title="Month",
-        yaxis_title="Number of Fraud Cases"
-    )
-    fig7 = apply_chart_theme(fig7)
-    
     # Data table with improved formatting
     columns = [
         {"name": "Policy Number", "id": "Dummy Policy No", "selectable": True},
@@ -1065,8 +1381,7 @@ def update_all_visualizations(filtered_data):
     # Select only necessary columns for table display
     table_data = table_df[[col['id'] for col in columns]].to_dict('records')
     
-    return fig1, fig2, fig3, fig4, fig5, fig6, fig7, table_data, columns
-
+    return fig1, fig2, fig3, fig4, fig5, fig6, table_data, columns
 # Callback for exporting CSV
 @app.callback(
     Output("export-csv", "n_clicks"),
@@ -1108,4 +1423,5 @@ for chart_id in ["treemap", "channel-bar", "policy-death-hist",
 
 # Run the app
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=8000, debug=False)
+    # app.run_server(host='0.0.0.0', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=8000)

@@ -3,4 +3,4 @@ services:
     name: SBITRY
     runtime: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:mainapp4"
+    startCommand: "gunicorn app:app"
