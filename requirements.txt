@@ -76,7 +76,7 @@ httpcore==0.9.1
 httpx==0.13.3
 huggingface-hub==0.29.0
 hyperframe==5.2.0
-idna==3.10
+idna>=2.8
 imbalanced-learn==0.13.0
 imblearn==0.0
 importlib_metadata==8.6.1
