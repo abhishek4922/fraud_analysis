@@ -1,4 +1,3 @@
-
 import dash
 from dash import dcc, html, Input, Output, State, dash_table, callback
 import dash_bootstrap_components as dbc
@@ -17,12 +16,12 @@ app = dash.Dash(__name__,
                                      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"],
                 suppress_callback_exceptions=True)
 app.title = "Insurance Fraud Analytics Dashboard"
-app = dash.Dash(__name__, 
-                external_stylesheets=[dbc.themes.FLATLY, 
-                                      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"],
-                suppress_callback_exceptions=True)
+# app = dash.Dash(__name__, 
+#                 external_stylesheets=[dbc.themes.FLATLY, 
+#                                       "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"],
+#                 suppress_callback_exceptions=True)
 
-app.title = "Insurance Fraud Analytics Dashboard"
+# app.title = "Insurance Fraud Analytics Dashboard"
 
 server = app.server  # <--- ADD THIS LINE
 
