@@ -86,42 +86,186 @@ header = dbc.Navbar(
 )
 
 # Enhanced file upload card
+# upload_card = dbc.Card(
+#     [
+#         dbc.CardHeader([
+#             html.I(className="fas fa-database me-2", style={"color": colors['info']}),
+#             "Data Source"
+#         ], className="d-flex align-items-center"),
+#         dbc.CardBody(
+#             [
+#                 dcc.Upload(
+#                     id='upload-data',
+#                     children=html.Div([
+#                         html.I(className="fas fa-file-excel me-2"),
+#                         'Drag and Drop or ',
+#                         html.A('Select Excel File (.xlsx)', 
+#                               className="text-primary fw-bold")
+#                     ]),
+#                     style={
+#                         'width': '100%', 
+#                         'height': '70px', 
+#                         'lineHeight': '70px',
+#                         'borderWidth': '2px', 
+#                         'borderStyle': 'dashed', 
+#                         'borderRadius': '10px',
+#                         'textAlign': 'center',
+#                         'background': colors['light'],
+#                         'transition': 'all 0.3s'
+#                     },
+#                     multiple=False
+#                 ),
+#                 html.Div(id="upload-status", className="mt-3")
+#             ]
+#         ),
+#     ],
+#     className="mb-4 shadow-sm",
+#     style={"border-radius": "8px"}
+# )
 upload_card = dbc.Card(
     [
         dbc.CardHeader([
-            html.I(className="fas fa-database me-2", style={"color": colors['info']}),
+            html.I(className="fas fa-cloud-upload-alt me-2", style={"color": colors['info']}),
             "Data Source"
-        ], className="d-flex align-items-center"),
+        ], className="d-flex align-items-center fw-bold"),
+        
         dbc.CardBody(
             [
+                # Upload area with hover effect
                 dcc.Upload(
                     id='upload-data',
                     children=html.Div([
-                        html.I(className="fas fa-file-excel me-2"),
-                        'Drag and Drop or ',
-                        html.A('Select Excel File (.xlsx)', 
-                              className="text-primary fw-bold")
+                        html.Div([
+                            html.I(className="fas fa-file-excel fa-2x mb-2", style={"color": colors['info']}),
+                            html.Div('Drag and Drop or Select File', className="fw-bold"),
+                            html.Div('Excel (.xlsx) format only', className="text-muted small")
+                        ], className="d-flex flex-column align-items-center justify-content-center")
                     ]),
                     style={
-                        'width': '100%', 
-                        'height': '70px', 
-                        'lineHeight': '70px',
-                        'borderWidth': '2px', 
-                        'borderStyle': 'dashed', 
-                        'borderRadius': '10px',
+                        'width': '100%',
+                        'height': '150px',
+                        'borderWidth': '2px',
+                        'borderStyle': 'dashed',
+                        'borderRadius': '12px',
+                        'borderColor': colors['info'],
                         'textAlign': 'center',
-                        'background': colors['light'],
-                        'transition': 'all 0.3s'
+                        'background': f"{colors['light']}80",
+                        'transition': 'all 0.3s',
+                        'cursor': 'pointer',
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center'
                     },
+                    # Add hover style effect
+                    className="upload-box",
                     multiple=False
                 ),
-                html.Div(id="upload-status", className="mt-3")
+                
+                # Upload status area with animation
+                html.Div(id="upload-status", className="mt-3 text-center"),
+                
+                # Required Columns section with improved styling and larger font
+                html.Div(
+                    [
+                        html.Div([
+                            html.I(className="fas fa-list-check me-2", style={"color": colors['info']}),
+                            html.H6("Required Columns", className="mb-0 fs-5")  # Increased size with fs-5
+                        ], className="d-flex align-items-center mt-4 mb-3"),
+                        
+                        html.Div(
+                            [
+                                dbc.Badge("Policy Number", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),  # Increased badge font
+                                dbc.Badge("State", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("City", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Postcode", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Channel", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Policy Start", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Death Date", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Intimation Date", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Days to Death", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6"),
+                                dbc.Badge("Fraud Category", 
+                                          color="primary", pill=True, 
+                                          className="me-2 mb-2 px-3 py-2 fs-6")
+                            ],
+                            style={"display": "flex", "flexWrap": "wrap"}
+                        ),
+                        
+                        # Info tooltip/popover
+                        html.Div([
+                            dbc.Button(
+                                html.I(className="fas fa-info-circle"),
+                                id="tooltip-target",
+                                color="link",
+                                size="sm",
+                                className="text-muted p-0"
+                            ),
+                            dbc.Tooltip(
+                                "Column names in your Excel file should match these required fields (alternative names in parentheses are also accepted).",
+                                target="tooltip-target",
+                                placement="top"
+                            ),
+                        ], className="mt-2 text-end")
+                    ],
+                    className="bg-light p-3 rounded",
+                    style={"fontSize": "1rem"}  # Increased base font size for the entire section
+                ),
+                
+                # Add sample file download option
+                html.Div([
+                    html.A([
+                        html.I(className="fas fa-download me-2"),
+                        "Download Sample Template"
+                    ], href="#", className="text-decoration-none", id="download-sample")
+                ], className="mt-3 text-center")  # Removed 'small' class to keep consistent with larger text
             ]
         ),
     ],
-    className="mb-4 shadow-sm",
-    style={"border-radius": "8px"}
+    className="mb-4 shadow",
+    style={"border-radius": "15px", "border": "none"}
 )
+
+# # Add this to your CSS to create the hover effect
+# upload_styles = html.Style("""
+#     .upload-box:hover {
+#         border-color: #0d6efd !important;
+#         background-color: rgba(13, 110, 253, 0.05) !important;
+#         transform: translateY(-2px);
+#         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+#     }
+    
+#     /* Add a subtle animation to the upload status area */
+#     @keyframes fadeIn {
+#         from { opacity: 0; transform: translateY(10px); }
+#         to { opacity: 1; transform: translateY(0); }
+#     }
+    
+#     #upload-status {
+#         animation: fadeIn 0.5s ease-out;
+#     }
+    
+#     /* Make badges more readable with increased font size */
+#     .badge.fs-6 {
+#         font-size: 0.85rem !important;
+#     }
+# """)
 
 # Filters component as a collapsible sidebar card
 filters_card = dbc.Card(
